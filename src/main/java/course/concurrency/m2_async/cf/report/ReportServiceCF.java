@@ -8,10 +8,7 @@ import java.util.concurrent.*;
 
 public class ReportServiceCF {
 
-    private ExecutorService executor = new ThreadPoolExecutor(4,48,0L,
-            TimeUnit.MILLISECONDS,
-            new SynchronousQueue<>()
-    );
+    private ExecutorService executor = Executors.newCachedThreadPool();
 
     private LoadGenerator loadGenerator = new LoadGenerator();
 
