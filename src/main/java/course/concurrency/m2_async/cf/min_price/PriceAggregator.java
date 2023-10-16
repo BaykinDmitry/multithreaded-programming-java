@@ -1,7 +1,8 @@
 package course.concurrency.m2_async.cf.min_price;
 
-import java.util.Collection;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.DoubleAccumulator;
 
 public class PriceAggregator {
 
@@ -17,8 +18,29 @@ public class PriceAggregator {
         this.shopIds = shopIds;
     }
 
+
     public double getMinPrice(long itemId) {
-        // place for your code
-        return 0;
+        DoubleAccumulator minPrice = new DoubleAccumulator(Double::min,Double.MAX_VALUE);
+        ThreadPoolExecutor executorService = (ThreadPoolExecutor) Executors.newCachedThreadPool();
+        executorService.setCorePoolSize(10);
+        executorService.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        executorService.setKeepAliveTime(3000, TimeUnit.MILLISECONDS);
+        executorService.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        for (Long shopId : shopIds) {
+            executorService.submit(() -> {
+                double price = priceRetriever.getPrice(itemId, shopId);
+                if(!Double.isNaN(price)) minPrice.accumulate(price);
+            });
+        }
+        try {
+            executorService.shutdown();
+            executorService.awaitTermination(2950, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+        }
+        double doubleMinPrice = minPrice.get();
+        //todo: Не очень красивое решение, но поскоьку у нас цена в пределах 1000, то код вполне рабочий.
+        return Double.compare(doubleMinPrice,Double.MAX_VALUE)==0?Double.NaN:doubleMinPrice;
     }
+
 }

@@ -40,7 +40,6 @@ public class PriceAggregatorTests {
     }
 
     @Test
-    @Disabled
     @DisplayName("Every shop responds")
     public void shouldReturnMin() {
         int shopCount = 50;
@@ -64,7 +63,6 @@ public class PriceAggregatorTests {
     }
 
     @Test
-    @Disabled
     @DisplayName("No one responds")
     public void shouldReturnDefault() {
         PriceRetriever priceRetriever = mock(PriceRetriever.class);
@@ -84,7 +82,6 @@ public class PriceAggregatorTests {
     }
 
     @Test
-    @Disabled
     @DisplayName("Half of shops respond too long")
     public void shouldTolerateLongResponses(){
         int shopCount = 50;
@@ -119,7 +116,6 @@ public class PriceAggregatorTests {
     }
 
     @Test
-    @Disabled
     @DisplayName("Not everyone responds")
     public void shouldReturnMinWithIncomplete() {
         int shopCount = 50;
@@ -160,7 +156,6 @@ public class PriceAggregatorTests {
     }
 
     @Test
-    @Disabled
     @DisplayName("Some shops respond with exception")
     public void shouldReturnMinWithException() {
         int shopCount = 50;
@@ -198,7 +193,6 @@ public class PriceAggregatorTests {
     }
 
     @Test
-    @Disabled
     @DisplayName("Min price from last shop")
     public void shouldReturnMinFromLast() {
         int shopCount = 50;
