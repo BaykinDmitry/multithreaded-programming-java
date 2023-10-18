@@ -1,9 +1,10 @@
 package course.concurrency.m2_async.cf.min_price;
 
-import java.util.Collection;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.DoubleAccumulator;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PriceAggregator {
 
@@ -26,38 +27,29 @@ public class PriceAggregator {
     }
 
     private double getMinPriceCompletableFuture(long itemId) {
-        /*Вместо DoubleAccumulator можно было использовать коллекцию и у же в ней найти минимум,
-         *Но поскольку У нас реш идет про многопоточное решение использовать DoubleAccumulator, думаю правильно
-         */
-        DoubleAccumulator minPrice = new DoubleAccumulator(Double::min, Double.POSITIVE_INFINITY);
-
         /*Тут ну очень интересная ситуация если не использовать свой ExecutorService, то проваливаются 2 и 5 тесты
-        * получается что если не увеличить пул у стандартного или не использовать свой, то он просто не успевает
-        * отработать все потоки за 3 секунды
-        * */
+         * получается что если не увеличить пул у стандартного или не использовать свой, то он просто не успевает
+         * отработать все потоки за 3 секунды
+         * */
         ExecutorService executorService = Executors.newCachedThreadPool();
-        /*Выполнить запросы для всех магазинов */
-        CompletableFuture.allOf(shopIds.stream().map(shopId ->
 
-                  CompletableFuture.supplyAsync(() -> priceRetriever.getPrice(itemId, shopId), executorService)
-                        /*при получении результата из потока смотрим:
-                          что есть результат
-                        * нет ошибки
-                        * результат определен
-                        * если все условия удовлетворены то отправляем результат в накопитель*/
-                        .whenComplete((v, th) -> {
-                            if (v != null && th == null)
-                                if (!Double.isNaN(v)) minPrice.accumulate(v);
-                        })
-                        /*добавляем ограничение по времени на конкретный поток*/
-                        .orTimeout(2900L, TimeUnit.MILLISECONDS)
-        ).toArray(CompletableFuture[]::new))
-                /*ограничение по времени на все потоки 2900сек*/
-                .orTimeout(2900L, TimeUnit.MILLISECONDS)
-                /*подавление ошибок (в первую очередь и TimeoutException)*/
-                .handle(((v, th) -> v)).join();
-        double price = minPrice.get();
-        return Double.isInfinite(price)?Double.NaN:price;
+        /*Сборка перечня CompletableFuture Для опроса магазинов*/
+        List<CompletableFuture<Double>> listCF = shopIds.stream()
+                .map(shopId ->
+                        CompletableFuture.supplyAsync(() -> priceRetriever.getPrice(itemId, shopId), executorService)
+                                .orTimeout(2950, TimeUnit.MILLISECONDS)
+                                .handle((v, th) -> v))
+                .collect(Collectors.toList());
+
+        /*Опрос+ расчет минимума*/
+        Optional<Double> finalResult = listCF.stream()
+                .map(CompletableFuture::join)
+                .filter(Objects::nonNull)
+                .filter(v -> !Double.isNaN(v))
+                .min(Double::compare);
+        if (finalResult.isEmpty())
+            return Double.NaN;
+        return finalResult.get();
     }
 
     private double getMinPriceExecutorService(long itemId) {
@@ -79,7 +71,8 @@ public class PriceAggregator {
             executorService.shutdownNow();
         }
         double price = minPrice.get();
-        return Double.isInfinite(price)?Double.NaN:price;
+        return Double.isInfinite(price) ? Double.NaN : price;
     }
+
 
 }
