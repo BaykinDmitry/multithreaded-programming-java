@@ -4,11 +4,12 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.DoubleAccumulator;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class PriceAggregator {
 
     private PriceRetriever priceRetriever = new PriceRetriever();
+
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     public void setPriceRetriever(PriceRetriever priceRetriever) {
         this.priceRetriever = priceRetriever;
@@ -31,25 +32,24 @@ public class PriceAggregator {
          * получается что если не увеличить пул у стандартного или не использовать свой, то он просто не успевает
          * отработать все потоки за 3 секунды
          * */
-        ExecutorService executorService = Executors.newCachedThreadPool();
+
 
         /*Сборка перечня CompletableFuture Для опроса магазинов*/
         List<CompletableFuture<Double>> listCF = shopIds.stream()
                 .map(shopId ->
-                        CompletableFuture.supplyAsync(() -> priceRetriever.getPrice(itemId, shopId), executorService)
-                                .orTimeout(2950, TimeUnit.MILLISECONDS)
-                                .handle((v, th) -> v))
+                        CompletableFuture.supplyAsync(() -> priceRetriever.getPrice(itemId, shopId), executor)
+                                .completeOnTimeout(Double.NaN, 2950L, TimeUnit.MILLISECONDS)
+                                .handle((v, th) -> {
+                                    return th != null?Double.NaN:v;
+                                }))
                 .collect(Collectors.toList());
 
         /*Опрос+ расчет минимума*/
         Optional<Double> finalResult = listCF.stream()
                 .map(CompletableFuture::join)
-                .filter(Objects::nonNull)
                 .filter(v -> !Double.isNaN(v))
                 .min(Double::compare);
-        if (finalResult.isEmpty())
-            return Double.NaN;
-        return finalResult.get();
+        return finalResult.orElse(Double.NaN);
     }
 
     private double getMinPriceExecutorService(long itemId) {
