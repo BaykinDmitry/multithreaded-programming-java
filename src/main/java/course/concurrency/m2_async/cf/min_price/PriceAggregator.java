@@ -39,9 +39,7 @@ public class PriceAggregator {
                 .map(shopId ->
                         CompletableFuture.supplyAsync(() -> priceRetriever.getPrice(itemId, shopId), executor)
                                 .completeOnTimeout(Double.NaN, 2950L, TimeUnit.MILLISECONDS)
-                                .handle((v, th) -> {
-                                    return th != null?Double.NaN:v;
-                                }))
+                                .exceptionally(th->Double.NaN))
                 .collect(Collectors.toList());
 
         /*Опрос+ расчет минимума*/
