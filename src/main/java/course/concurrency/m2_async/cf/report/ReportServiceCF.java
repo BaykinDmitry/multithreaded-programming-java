@@ -8,7 +8,7 @@ import java.util.concurrent.*;
 
 public class ReportServiceCF {
 
-    private ExecutorService executor = Executors.newCachedThreadPool();
+    private ExecutorService executor = ForkJoinPool.commonPool();
 
     private LoadGenerator loadGenerator = new LoadGenerator();
 
