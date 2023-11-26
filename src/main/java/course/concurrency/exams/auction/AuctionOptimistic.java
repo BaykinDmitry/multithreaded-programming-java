@@ -1,7 +1,6 @@
 package course.concurrency.exams.auction;
 
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.atomic.LongAccumulator;
 
 public class AuctionOptimistic implements Auction {
 
@@ -13,7 +12,6 @@ public class AuctionOptimistic implements Auction {
     }
 
     private AtomicReference<Bid> latestBid = new AtomicReference<>();
-    private LongAccumulator maxPrice = new LongAccumulator(Math::max, 0);
 
     public boolean propose(Bid bid) {
         Bid localBid;

@@ -1,7 +1,5 @@
 package course.concurrency.exams.auction;
 
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class AuctionPessimistic implements Auction {
 
@@ -17,7 +15,7 @@ public class AuctionPessimistic implements Auction {
     private volatile Bid latestBid;
 
     public boolean propose(Bid bid) {
-    if (latestBid != bid && bid.getPrice() > latestBid.getPrice()) {
+        if (latestBid != bid && bid.getPrice() > latestBid.getPrice()) {
             return updateLatestBid(bid);
         }
         return false;
